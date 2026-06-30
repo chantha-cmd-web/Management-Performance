@@ -72,7 +72,7 @@ var srv = http.createServer(function(req, res) {
     return;
   }
 
-  var fp = req.url === '/' ? '/Management_Appriasal.html' : req.url;
+  var fp = req.url === '/' ? '/index.html' : req.url;
   fp = path.join(__dirname, fp);
   var ext = path.extname(fp);
   fs.readFile(fp, function(err, data) {

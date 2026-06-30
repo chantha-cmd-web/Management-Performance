@@ -1066,7 +1066,7 @@ body {
       <div class="form-grid">
         <div class="form-group autocomplete-wrap">
           <label>លេខសម្គាល់បុគ្គលិក <span>Employee ID</span></label>
-          <input type="text" id="empId" placeholder="Type ID to search..." oninput="filterEmployees(this.value)" onblur="hideAutocomplete()" onfocus="filterEmployees(this.value)">
+          <input type="text" id="empId" placeholder="Type ID to search..." oninput="filterEmployees(this.value)" onblur="hideAutocomplete()" onfocus="filterEmployees(this.value)" onkeydown="if(event.key==='Enter'){event.preventDefault();autoSelectEmployee(this.value)}">
           <div class="autocomplete-dropdown" id="autoDropdown"></div>
         </div>
         <div class="form-group">
@@ -1363,12 +1363,14 @@ function startFsListener() {
       });
       _fsReady = true;
       saveToStorage();
-      var dashTab = document.getElementById('tab-dashboard');
-      if (dashTab && dashTab.classList.contains('active')) {
-        renderTable();
-        updateStats();
+      renderTable();
+      updateStats();
+      var toast = document.getElementById('toast');
+      if (evaluations.length) {
+        toast.textContent = evaluations.length + ' records synced from server';
+        toast.className = 'toast toast-success show';
+        setTimeout(function(){toast.classList.remove('show');},2000);
       }
-      var manageTab = document.getElementById('tab-manageusers');
     }, function(err) {
       console.warn('Firestore error, using local data:', err);
     });
@@ -1699,7 +1701,7 @@ function cbParam() {
 }
 
 function fetchFromSheet(gid, scoreCount, next) {
-  var url = 'https://docs.google.com/spreadsheets/d/1PtOX76nXMJFZ7ymlyrmdYMlPSVU6p614b5Azx1MBkMk/export?format=csv&gid='+gid + cbParam();
+  var url = '/api/sheet2?gid='+gid + cbParam();
   fetch(url).then(function(r){return r.text();}).then(function(csv){
     var lines = csv.split('\n');
     for (var i = 2; i < lines.length; i++) {
@@ -1728,7 +1730,7 @@ function refreshSheetData() {
 
 function fetchEmployeesFromSheet() {
   var gid = '1500996284';
-  var base = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTO68GX9WFErMXR7GxUbaAybv0Vu-Cuia482ACsE8LDVOy_g_fAmvuEG7Y6WTSAII_PG521XZoBgBM_/pub?gid=' + gid + '&single=true&output=csv' + cbParam();
+  var base = '/api/sheet1?gid=' + gid + cbParam();
   fetch(base).then(function(r) { return r.text(); }).then(function(csv) {
     var lines = csv.split('\n');
     var newEmployees = [];
@@ -1883,6 +1885,21 @@ function applySelfScores(empId) {
     else statusEl.textContent = 'no record in sheet';
   }
   calcTotals();
+}
+
+function autoSelectEmployee(val) {
+  if (!val.trim()) return;
+  for (var i = 0; i < EMPLOYEES.length; i++) {
+    if (EMPLOYEES[i].id === val.trim()) {
+      selectEmployee(EMPLOYEES[i]);
+      return;
+    }
+  }
+  var matches = [];
+  for (var i = 0; i < EMPLOYEES.length; i++) {
+    if (EMPLOYEES[i].id.indexOf(val.trim()) === 0) matches.push(EMPLOYEES[i]);
+  }
+  if (matches.length === 1) selectEmployee(matches[0]);
 }
 
 function hideAutocomplete() {
