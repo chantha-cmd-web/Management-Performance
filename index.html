@@ -12,6 +12,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <style>
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 ::-webkit-scrollbar { width: 5px; }
@@ -1347,7 +1348,6 @@ function saveToStorage() {
 
 function loadFromStorage() {
   try { var saved = localStorage.getItem('evalData'); if (saved) { evaluations = JSON.parse(saved); } } catch(e) {}
-  startFsListener();
 }
 
 function startFsListener() {
@@ -1462,6 +1462,11 @@ function enterApp() {
   document.getElementById('loginOverlay').classList.add('hidden');
   document.getElementById('appWrapper').classList.add('show');
   document.getElementById('password').value = '';
+
+  // Authenticate with Firebase anonymously for Firestore access
+  firebase.auth().signInAnonymously().catch(function(err) {
+    console.warn('Firebase anonymous auth failed:', err);
+  });
 
   var nameParts = currentUser.name.split(' ');
   var initials = (nameParts[0][0] || 'U') + (nameParts[nameParts.length - 1][0] || '');
@@ -2694,9 +2699,14 @@ animateStars();
 // ========== INIT ==========
 fetchEmployeesFromSheet();
 initCriteria();
-loadFromStorage();
+// Load cached data for instant display, then wait for auth to start Firestore listener
+try { var saved = localStorage.getItem('evalData'); if (saved) { evaluations = JSON.parse(saved); } } catch(e) {}
 fetchSelfScores();
-startFsListener();
+firebase.auth().onAuthStateChanged(function(user) {
+  if (user) {
+    startFsListener();
+  }
+});
 </script>
 </body>
 </html>
