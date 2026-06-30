@@ -1759,10 +1759,18 @@ function fetchEmployeesFromSheet() {
     var btn = document.getElementById('refreshSheetBtn');
     if (btn) { btn.disabled = false; btn.textContent = '\u{1F504} Refresh'; }
   }).catch(function() {
-    var box = document.getElementById('sheetStatus');
-    if (box) box.textContent = 'sheet offline, using local data';
-    var btn = document.getElementById('refreshSheetBtn');
-    if (btn) { btn.disabled = false; btn.textContent = '\u{1F504} Refresh'; }
+    fetch('employees.json').then(function(r){return r.json();}).then(function(data){
+      if (data.length > 10) { EMPLOYEES = data; }
+      var box = document.getElementById('sheetStatus');
+      if (box) box.textContent = EMPLOYEES.length + ' employees loaded';
+      var btn = document.getElementById('refreshSheetBtn');
+      if (btn) { btn.disabled = false; btn.textContent = '\u{1F504} Refresh'; }
+    }).catch(function() {
+      var box = document.getElementById('sheetStatus');
+      if (box) box.textContent = 'sheet offline, using local data';
+      var btn = document.getElementById('refreshSheetBtn');
+      if (btn) { btn.disabled = false; btn.textContent = '\u{1F504} Refresh'; }
+    });
   });
 }
 
@@ -1816,6 +1824,14 @@ function calcTotals() {
 function filterEmployees(val) {
   var dd = document.getElementById('autoDropdown');
   if (!val.trim()) { dd.classList.remove('show'); return; }
+  var exactId = val.trim();
+  for (var i = 0; i < EMPLOYEES.length; i++) {
+    if (EMPLOYEES[i].id === exactId) {
+      selectEmployee(EMPLOYEES[i]);
+      dd.classList.remove('show');
+      return;
+    }
+  }
   var matches = [];
   for (var i = 0; i < EMPLOYEES.length; i++) {
     var e = EMPLOYEES[i];
@@ -1903,7 +1919,11 @@ function autoSelectEmployee(val) {
 }
 
 function hideAutocomplete() {
-  setTimeout(function() { document.getElementById('autoDropdown').classList.remove('show'); }, 200);
+  setTimeout(function() {
+    document.getElementById('autoDropdown').classList.remove('show');
+    var val = document.getElementById('empId').value;
+    if (val.trim()) autoSelectEmployee(val);
+  }, 200);
 }
 
 // ========== FORM ==========
