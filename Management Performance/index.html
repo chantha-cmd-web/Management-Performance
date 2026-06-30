@@ -1701,7 +1701,7 @@ function cbParam() {
 }
 
 function fetchFromSheet(gid, scoreCount, next) {
-  var url = '/api/sheet2?gid='+gid + cbParam();
+  var url = 'https://docs.google.com/spreadsheets/d/1PtOX76nXMJFZ7ymlyrmdYMlPSVU6p614b5Azx1MBkMk/export?format=csv&gid='+gid + cbParam();
   fetch(url).then(function(r){return r.text();}).then(function(csv){
     var lines = csv.split('\n');
     for (var i = 2; i < lines.length; i++) {
@@ -1730,7 +1730,7 @@ function refreshSheetData() {
 
 function fetchEmployeesFromSheet() {
   var gid = '1500996284';
-  var base = '/api/sheet1?gid=' + gid + cbParam();
+  var base = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTO68GX9WFErMXR7GxUbaAybv0Vu-Cuia482ACsE8LDVOy_g_fAmvuEG7Y6WTSAII_PG521XZoBgBM_/pub?gid=' + gid + '&single=true&output=csv' + cbParam();
   fetch(base).then(function(r) { return r.text(); }).then(function(csv) {
     var lines = csv.split('\n');
     var newEmployees = [];
