@@ -1678,35 +1678,17 @@ function showDashboard() {
 // ========== SHEET SCORES ==========
 var _scoresLoaded = false;
 
-function fetchSelfScores() {
-  _scoresLoaded = false;
-  var box = document.getElementById('sheetStatus');
-  var fid = ++_fetchId;
-  fetchSelfScoresFromSheet(function() {
-    if (fid !== _fetchId) return;
-    _scoresLoaded = true;
-    var count = Object.keys(selfScoresLookup).length;
-    if (box) box.textContent = count + ' loaded from sheet';
-    var btn = document.getElementById('refreshSheetBtn');
-    if (btn) { btn.disabled = false; btn.textContent = '\u{1F504} Refresh'; }
-    var idEl = document.getElementById('empId');
-    if (idEl && idEl.value) {
-      applySelfScores(idEl.value);
-    }
-  });
-}
+var SELF_SCORE_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQzNvf-UHV5u4jirdF9NuZTltzXozEi13j3U0Nme62VDH9a4UpQTbUYUqHG0hyv1uyzmFdYD5dIOPbR/pub?output=csv';
+var MGMT_SHEET_URL = 'https://docs.google.com/spreadsheets/d/1PtOX76nXMJFZ7ymlyrmdYMlPSVU6p614b5Azx1MBkMk/export?format=csv&gid=607488980';
 
 function cbParam() {
   return '&_cb=' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
 }
 
-var SELF_SCORE_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQzNvf-UHV5u4jirdF9NuZTltzXozEi13j3U0Nme62VDH9a4UpQTbUYUqHG0hyv1uyzmFdYD5dIOPbR/pub?output=csv';
-
-function fetchSelfScoresFromSheet(next) {
-  var url = SELF_SCORE_URL + cbParam();
-  fetch(url).then(function(r){return r.text();}).then(function(csv){
+function fetchSelfScoresFromSheet(url, skipRows, next) {
+  fetch(url + cbParam()).then(function(r){return r.text();}).then(function(csv){
     var lines = csv.split('\n');
-    for (var i = 1; i < lines.length; i++) {
+    for (var i = skipRows; i < lines.length; i++) {
       var line = lines[i].trim();
       if (!line) continue;
       var parts = parseCSVLine(line);
@@ -1721,6 +1703,29 @@ function fetchSelfScoresFromSheet(next) {
     }
     if (next) next();
   }).catch(function(){ if (next) next(); });
+}
+
+function fetchSelfScores() {
+  _scoresLoaded = false;
+  var box = document.getElementById('sheetStatus');
+  var fid = ++_fetchId;
+  var done = 0;
+  function onDone() {
+    done++;
+    if (done < 2) return;
+    if (fid !== _fetchId) return;
+    _scoresLoaded = true;
+    var count = Object.keys(selfScoresLookup).length;
+    if (box) box.textContent = count + ' loaded from sheet';
+    var btn = document.getElementById('refreshSheetBtn');
+    if (btn) { btn.disabled = false; btn.textContent = '\u{1F504} Refresh'; }
+    var idEl = document.getElementById('empId');
+    if (idEl && idEl.value) {
+      applySelfScores(idEl.value);
+    }
+  }
+  fetchSelfScoresFromSheet(SELF_SCORE_URL, 1, onDone);
+  fetchSelfScoresFromSheet(MGMT_SHEET_URL, 2, onDone);
 }
 
 function refreshSheetData() {
@@ -1875,10 +1880,15 @@ function selectEmployee(emp) {
   calcTotals();
   delete selfScoresLookup[emp.id];
   var fid = ++_fetchId;
-  fetchSelfScoresFromSheet(function() {
+  var done = 0;
+  function onDone() {
+    done++;
+    if (done < 2) return;
     if (fid !== _fetchId) return;
     applySelfScores(emp.id);
-  });
+  }
+  fetchSelfScoresFromSheet(SELF_SCORE_URL, 1, onDone);
+  fetchSelfScoresFromSheet(MGMT_SHEET_URL, 2, onDone);
 }
 
 function applySelfScores(empId) {
@@ -2743,10 +2753,15 @@ initCriteria();
 try { var saved = localStorage.getItem('evalData'); if (saved) { evaluations = JSON.parse(saved); } } catch(e) {}
 fetchSelfScores();
 var _refreshTimer = setInterval(function() {
-  fetchSelfScoresFromSheet(function() {
+  var done = 0;
+  function onRefreshDone() {
+    done++;
+    if (done < 2) return;
     var idEl = document.getElementById('empId');
     if (idEl && idEl.value) applySelfScores(idEl.value);
-  });
+  }
+  fetchSelfScoresFromSheet(SELF_SCORE_URL, 1, onRefreshDone);
+  fetchSelfScoresFromSheet(MGMT_SHEET_URL, 2, onRefreshDone);
 }, 30000);
 firebase.auth().onAuthStateChanged(function(user) {
   if (user) {
