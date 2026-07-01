@@ -1736,7 +1736,10 @@ function refreshSheetData() {
   if (btn) { btn.disabled = true; btn.textContent = '\u{1F504} Loading...'; }
   selfScoresLookup = {};
   fetchEmployeesFromSheet();
-  fetchSelfScores();
+  fetchSelfScores(function() {
+    var idEl = document.getElementById('empId');
+    if (idEl && idEl.value) applySelfScores(idEl.value);
+  });
   showToast('Refreshing sheet data...', 'success');
 }
 
@@ -1882,9 +1885,7 @@ function selectEmployee(emp) {
   if (statusEl) statusEl.textContent = 'loading...';
   calcTotals();
   delete selfScoresLookup[emp.id];
-  var fid = ++_fetchId;
   fetchSelfScores(function() {
-    if (fid !== _fetchId) return;
     applySelfScores(emp.id);
   });
 }
