@@ -1685,9 +1685,21 @@ function cbParam() {
   return '&_cb=' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
 }
 
+function splitCSVRows(text) {
+  var rows = [], cur = '', inQ = false;
+  for (var i = 0; i < text.length; i++) {
+    var c = text[i];
+    if (c === '"') { inQ = !inQ; }
+    if (c === '\n' && !inQ) { if (cur.length > 0) rows.push(cur); cur = ''; }
+    else if (c !== '\r' || inQ) { cur += c; }
+  }
+  if (cur.length > 0) rows.push(cur);
+  return rows;
+}
+
 function fetchSelfScoresFromSheet(url, skipRows, next) {
   fetch(url + cbParam()).then(function(r){return r.text();}).then(function(csv){
-    var lines = csv.split('\n');
+    var lines = splitCSVRows(csv);
     for (var i = skipRows; i < lines.length; i++) {
       var line = lines[i].trim();
       if (!line) continue;
@@ -1741,7 +1753,7 @@ function fetchEmployeesFromSheet() {
   var gid = '1500996284';
   var base = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTO68GX9WFErMXR7GxUbaAybv0Vu-Cuia482ACsE8LDVOy_g_fAmvuEG7Y6WTSAII_PG521XZoBgBM_/pub?gid=' + gid + '&single=true&output=csv' + cbParam();
   fetch(base).then(function(r) { return r.text(); }).then(function(csv) {
-    var lines = csv.split('\n');
+    var lines = splitCSVRows(csv);
     var newEmployees = [];
     var started = false;
     for (var i = 0; i < lines.length; i++) {
