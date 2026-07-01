@@ -7,6 +7,7 @@ const url = require('url');
 const PORT = 3000;
 const SHEET1 = '2PACX-1vTO68GX9WFErMXR7GxUbaAybv0Vu-Cuia482ACsE8LDVOy_g_fAmvuEG7Y6WTSAII_PG521XZoBgBM_';
 const SHEET2 = '1PtOX76nXMJFZ7ymlyrmdYMlPSVU6p614b5Azx1MBkMk';
+const SHEET3 = '2PACX-1vQzNvf-UHV5u4jirdF9NuZTltzXozEi13j3U0Nme62VDH9a4UpQTbUYUqHG0hyv1uyzmFdYD5dIOPbR';
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -69,6 +70,10 @@ var srv = http.createServer(function(req, res) {
   if (req.url.indexOf('/api/sheet2') === 0) {
     var q2 = url.parse(req.url, true).query;
     proxy(res, SHEET2, q2.gid || '607488980', q2._cb || '', true);
+    return;
+  }
+  if (req.url.indexOf('/api/sheet3') === 0) {
+    proxy(res, SHEET3, '0', '', false);
     return;
   }
 
