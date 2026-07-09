@@ -6,7 +6,7 @@
 <title>Annual Performance Dashboard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Khmer:wght@300;400;500;600;700&family=Inter:wght@200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Khmer:wght@300;400;500;600;700&family=Inter:wght@200;300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@200;300;400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -39,6 +39,77 @@ body {
   pointer-events: none;
 }
 
+/* ============= AURORA BACKGROUND ============= */
+.aurora-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e4e9f2 50%, #dce1eb 100%);
+}
+.aurora-bg.light-theme {
+  background: linear-gradient(135deg, #f5f7fa 0%, #e4e9f2 50%, #dce1eb 100%);
+}
+.aurora-bg.dark-theme {
+  background: linear-gradient(135deg, #0a0a1a 0%, #0f0f2a 50%, #1a0a2a 100%);
+}
+
+.aurora-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.4;
+  will-change: transform;
+  pointer-events: none;
+}
+.light-theme .aurora-orb { opacity: 0.3; }
+.dark-theme .aurora-orb { opacity: 0.35; }
+
+.aurora-orb:nth-child(1) {
+  width: 600px; height: 600px;
+  background: radial-gradient(circle, #6366f1 0%, #8b5cf6 40%, transparent 70%);
+  top: -15%; left: -10%;
+  animation: auroraDrift1 20s ease-in-out infinite;
+}
+.aurora-orb:nth-child(2) {
+  width: 500px; height: 500px;
+  background: radial-gradient(circle, #06b6d4 0%, #3b82f6 40%, transparent 70%);
+  bottom: -20%; right: -10%;
+  animation: auroraDrift2 25s ease-in-out infinite;
+}
+.aurora-orb:nth-child(3) {
+  width: 400px; height: 400px;
+  background: radial-gradient(circle, #a855f7 0%, #ec4899 40%, transparent 70%);
+  top: 40%; left: 50%;
+  transform: translate(-50%, -50%);
+  animation: auroraDrift3 18s ease-in-out infinite;
+}
+.aurora-orb:nth-child(4) {
+  width: 350px; height: 350px;
+  background: radial-gradient(circle, #f59e0b 0%, #ef4444 40%, transparent 70%);
+  bottom: 10%; left: 10%;
+  animation: auroraDrift4 22s ease-in-out infinite;
+}
+
+@keyframes auroraDrift1 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(60px, 40px) scale(1.1); }
+  66% { transform: translate(-30px, -20px) scale(0.95); }
+}
+@keyframes auroraDrift2 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(-50px, -30px) scale(1.15); }
+  66% { transform: translate(40px, 20px) scale(0.9); }
+}
+@keyframes auroraDrift3 {
+  0%, 100% { transform: translate(-50%, -50%) scale(1); }
+  50% { transform: translate(-45%, -55%) scale(1.2); }
+}
+@keyframes auroraDrift4 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(30px, -40px) scale(1.1); }
+}
+
 /* ============= LOGIN ============= */
 .login-overlay {
   position: fixed;
@@ -47,8 +118,6 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 60px;
-  background: #F4F5F7;
   transition: all 0.8s cubic-bezier(0.34,1.56,0.64,1);
 }
 
@@ -58,16 +127,22 @@ body {
   pointer-events: none;
 }
 
+/* Glass Card */
 .login-card {
+  position: relative;
+  z-index: 1;
   width: 100%;
   max-width: 420px;
-  padding: 52px 44px 44px;
-  background: #1E62EC;
-  border: 1px solid rgba(255,255,255,0.15);
+  padding: 48px 40px 40px;
+  background: rgba(255,255,255,0.72);
+  backdrop-filter: blur(24px) saturate(1.4);
+  -webkit-backdrop-filter: blur(24px) saturate(1.4);
+  border: 1px solid rgba(255,255,255,0.5);
   border-radius: 28px;
-  box-shadow: 0 8px 32px rgba(30,98,236,0.3);
-  position: relative;
-  overflow: hidden;
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.3),
+    0 8px 32px rgba(0,0,0,0.06),
+    0 24px 60px rgba(0,0,0,0.04);
   animation: cardEnter 0.8s cubic-bezier(0.34,1.56,0.64,1);
 }
 .login-card::before {
@@ -75,164 +150,457 @@ body {
   position: absolute;
   top: 0; left: 0; right: 0;
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent);
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent);
 }
+.login-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 28px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.3) 0%, transparent 50%, rgba(255,255,255,0.05) 100%);
+  pointer-events: none;
+}
+
+.login-dark .login-card {
+  background: rgba(18,18,40,0.75);
+  backdrop-filter: blur(24px) saturate(1.2);
+  -webkit-backdrop-filter: blur(24px) saturate(1.2);
+  border-color: rgba(255,255,255,0.08);
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.04),
+    0 8px 32px rgba(0,0,0,0.3),
+    0 24px 60px rgba(0,0,0,0.2);
+}
+
 @keyframes cardEnter {
   from { opacity: 0; transform: translateY(30px) scale(0.96); }
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-.login-header { text-align: center; margin-bottom: 34px; }
+/* Header */
+.login-header {
+  text-align: center;
+  margin-bottom: 32px;
+  position: relative;
+  z-index: 1;
+}
+
+.login-header .logo-icon {
+  width: 52px;
+  height: 52px;
+  margin: 0 auto 16px;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 16px rgba(99,102,241,0.3);
+  animation: logoPulse 3s ease-in-out infinite;
+}
+@keyframes logoPulse {
+  0%, 100% { box-shadow: 0 4px 16px rgba(99,102,241,0.3); }
+  50% { box-shadow: 0 4px 24px rgba(99,102,241,0.5); }
+}
 
 .login-header h1 {
-  font-size: 26px; font-weight: 900; color: #FFFFFF;
-  letter-spacing: -0.8px; margin-bottom: 6px;
-  font-family: 'Inter', sans-serif;
+  font-size: 24px;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.6px;
+  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+  line-height: 1.2;
 }
+.login-dark .login-header h1 { color: #f1f5f9; }
+
 .login-header p {
-  font-size: 14px; font-weight: 700;
-  color: #FFFFFF;
-  letter-spacing: 0.1px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #64748b;
+  margin-top: 6px;
+}
+.login-dark .login-header p { color: #94a3b8; }
+
+/* Input Groups */
+.input-group {
+  margin-bottom: 20px;
+  position: relative;
+  z-index: 1;
 }
 
-.input-group { margin-bottom: 20px; position: relative; }
-.input-group label {
-  display: block; font-size: 12px; font-weight: 800;
-  color: #FFFFFF;
-  text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 8px;
+.input-group .input-wrap {
+  position: relative;
 }
-.input-group .input-wrap { position: relative; }
+
 .input-group .input-icon {
-  position: absolute; left: 18px; top: 50%; transform: translateY(-50%);
-  font-size: 16px; color: rgba(255,255,255,0.35); pointer-events: none;
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+  pointer-events: none;
+  transition: all 0.3s ease;
+  z-index: 2;
+}
+.login-dark .input-group .input-icon { color: #64748b; }
+
+.input-group .floating-label {
+  position: absolute;
+  left: 50px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: #94a3b8;
+  pointer-events: none;
+  transition: all 0.25s cubic-bezier(0.34,1.56,0.64,1);
+  background: transparent;
+  padding: 0 4px;
+  z-index: 2;
+  transform-origin: left center;
+}
+.login-dark .input-group .floating-label { color: #64748b; }
+
+.input-group input {
+  width: 100%;
+  padding: 20px 20px 20px 50px;
+  background: rgba(255,255,255,0.6);
+  border: 1.5px solid #e2e8f0;
+  border-radius: 14px;
+  font-family: 'Plus Jakarta Sans', 'Inter', 'Noto Sans Khmer', sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  color: #0f172a;
+  transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  outline: none;
+  position: relative;
+}
+.login-dark .input-group input {
+  background: rgba(255,255,255,0.05);
+  border-color: rgba(255,255,255,0.1);
+  color: #f1f5f9;
+}
+
+.input-group input::placeholder { color: transparent; }
+
+.input-group input:focus {
+  border-color: #6366f1;
+  background: rgba(255,255,255,0.85);
+  box-shadow: 0 0 0 4px rgba(99,102,241,0.1), 0 2px 8px rgba(99,102,241,0.06);
+}
+.login-dark .input-group input:focus {
+  border-color: #818cf8;
+  background: rgba(255,255,255,0.08);
+  box-shadow: 0 0 0 4px rgba(129,140,248,0.12), 0 2px 8px rgba(129,140,248,0.06);
+}
+
+.input-group input:focus ~ .input-icon,
+.input-group input.has-value ~ .input-icon {
+  color: #6366f1;
+}
+.login-dark .input-group input:focus ~ .input-icon { color: #818cf8; }
+
+/* Floating label animation */
+.input-group input:focus ~ .floating-label,
+.input-group input.has-value ~ .floating-label {
+  top: 0;
+  transform: translateY(-50%) scale(0.82);
+  padding: 0 6px;
+  background: rgba(255,255,255,0.72);
+  color: #6366f1;
+}
+.login-dark .input-group input:focus ~ .floating-label { color: #818cf8; }
+
+.login-dark .input-group input:focus ~ .floating-label,
+.login-dark .input-group input.has-value ~ .floating-label {
+  background: rgba(18,18,40,0.75);
+}
+
+.input-group input.has-error {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 4px rgba(239,68,68,0.1);
+}
+.input-group input.has-error:focus {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 4px rgba(239,68,68,0.1);
+}
+.input-group input.has-error ~ .floating-label { color: #ef4444; }
+
+.input-group .error-message {
+  font-size: 12px;
+  font-weight: 500;
+  color: #ef4444;
+  margin-top: 6px;
+  padding-left: 4px;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: all 0.25s ease;
+  min-height: 18px;
+}
+.input-group .error-message.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Password Toggle */
+.password-toggle {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  border-radius: 8px;
+  color: #94a3b8;
   transition: all 0.3s ease;
 }
-.input-group input {
-  width: 100%; padding: 18px 20px 18px 50px;
-  background: rgba(255,255,255,0.1);
-  border: 1px solid rgba(255,255,255,0.15);
-  border-radius: 16px;
-  font-family: 'Noto Sans Khmer', 'Inter', sans-serif;
-  font-size: 16px; font-weight: 700; color: #FFFFFF;
-  transition: all 0.35s cubic-bezier(0.34,1.56,0.64,1); outline: none;
+.login-dark .password-toggle { color: #64748b; }
+.password-toggle:hover {
+  color: #6366f1;
+  background: rgba(99,102,241,0.08);
 }
-.input-group input::placeholder { color: rgba(255,255,255,0.35); font-weight: 600; }
-.input-group input:focus {
-  border-color: rgba(255,255,255,0.4);
-  background: rgba(255,255,255,0.15);
-  box-shadow: 0 0 0 4px rgba(255,255,255,0.08), 0 4px 20px rgba(255,255,255,0.06);
-  transform: translateY(-1px);
-}
-.input-group input:focus ~ .input-icon,
-.input-group input:focus + .input-icon { color: rgba(255,255,255,0.6); }
+.password-toggle.visible { color: #6366f1; }
+.login-dark .password-toggle.visible { color: #818cf8; }
 
+.password-toggle .eye-icon {
+  width: 20px;
+  height: 20px;
+  transition: all 0.3s ease;
+}
+.password-toggle .eye-off { display: none; }
+.password-toggle.visible .eye-on { display: none; }
+.password-toggle.visible .eye-off { display: block; }
+
+/* Forgot Password */
+.forgot-password {
+  text-align: right;
+  margin-top: -8px;
+  margin-bottom: 20px;
+  position: relative;
+  z-index: 1;
+}
+.forgot-password a {
+  font-size: 12px;
+  font-weight: 600;
+  color: #94a3b8;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  letter-spacing: 0.1px;
+}
+.login-dark .forgot-password a { color: #64748b; }
+.forgot-password a:hover { color: #6366f1; }
+
+/* Login Button */
 .login-btn {
-  width: 100%; padding: 18px; border: none; border-radius: 16px;
-  font-family: 'Inter', sans-serif;
-  font-size: 16px; font-weight: 800; color: #fff;
+  width: 100%;
+  padding: 16px 24px;
+  border: none;
+  border-radius: 14px;
+  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
   cursor: pointer;
-  background: #FFFFFF;
-  color: #1E62EC;
-  position: relative; overflow: hidden;
+  position: relative;
+  overflow: hidden;
   transition: all 0.4s cubic-bezier(0.34,1.56,0.64,1);
-  letter-spacing: 0.5px; margin-top: 12px;
-  text-transform: uppercase;
-  box-shadow: 0 4px 16px rgba(255,255,255,0.25);
+  letter-spacing: 0.2px;
+  margin-top: 8px;
+  z-index: 1;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%);
+  background-size: 200% 200%;
+  background-position: 0% 50%;
+  box-shadow: 0 4px 16px rgba(99,102,241,0.3);
 }
+.login-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #9333ea 100%);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+.login-btn:hover::before { opacity: 1; }
 .login-btn:hover {
-  transform: translateY(-3px);
-  background: rgba(255,255,255,0.9);
-  box-shadow: 0 12px 32px rgba(255,255,255,0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(99,102,241,0.4);
+  background-position: 100% 50%;
 }
-.login-btn:active { transform: translateY(0) scale(0.97); }
-.login-btn.loading { pointer-events: none; }
-.login-btn .btn-text { transition: all 0.3s ease; display: inline-block; }
-.login-btn:hover .btn-text { transform: scale(1.02); }
-.login-btn.loading .btn-text { opacity: 0; transform: scale(0.8); }
+.login-btn:active {
+  transform: translateY(0) scale(0.98);
+}
+.login-btn.loading {
+  pointer-events: none;
+}
+.login-btn .btn-text {
+  position: relative;
+  z-index: 2;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.login-btn:hover .btn-text { letter-spacing: 0.5px; }
+.login-btn.loading .btn-text { opacity: 0; transform: scale(0.85); }
 .login-btn .spinner {
-  position: absolute; top: 50%; left: 50%;
+  position: absolute;
+  top: 50%; left: 50%;
   transform: translate(-50%, -50%);
-  width: 24px; height: 24px;
-  border: 2.5px solid rgba(255,255,255,0.15);
+  width: 22px; height: 22px;
+  border: 2.5px solid rgba(255,255,255,0.2);
   border-top-color: #fff;
   border-right-color: rgba(255,255,255,0.5);
   border-radius: 50%;
   animation: spin 0.7s cubic-bezier(0.34,1.56,0.64,1) infinite;
   opacity: 0; transition: all 0.3s ease;
+  z-index: 2;
 }
 .login-btn.loading .spinner { opacity: 1; }
 @keyframes spin { to { transform: translate(-50%, -50%) rotate(360deg); } }
 
+/* Ripple effect */
+.ripple {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.25);
+  transform: scale(0);
+  animation: rippleAnim 0.6s ease-out;
+  pointer-events: none;
+  z-index: 1;
+}
+@keyframes rippleAnim {
+  to { transform: scale(4); opacity: 0; }
+}
+
+/* Error */
 .login-error {
-  text-align: center; font-size: 14px; font-weight: 600;
-  color: #dc2626; margin-top: 14px;
-  min-height: 22px; opacity: 0; transition: opacity 0.3s ease;
-  letter-spacing: 0.2px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: #ef4444;
+  margin-top: 14px;
+  min-height: 20px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  position: relative;
+  z-index: 1;
 }
 .login-error.show { opacity: 1; }
 
-.password-toggle {
-  position: absolute; right: 16px; top: 50%; transform: translateY(-50%);
-  font-size: 16px; color: rgba(255,255,255,0.35);
-  cursor: pointer; transition: all 0.3s ease;
-  display: flex; align-items: center; justify-content: center;
-  padding: 4px; z-index: 2;
+/* Server Config */
+.server-config {
+  text-align: right;
+  margin-top: -6px;
+  margin-bottom: 14px;
+  position: relative;
+  z-index: 1;
 }
-.password-toggle:hover { color: rgba(255,255,255,0.7); }
-.password-toggle.visible { color: rgba(255,255,255,0.8); }
-
-.forgot-password {
-  text-align: right; margin-top: -10px; margin-bottom: 20px;
+.server-config > a {
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  cursor: pointer;
 }
-.forgot-password a {
-  font-size: 12px; font-weight: 600;
-  color: rgba(255,255,255,0.45);
-  text-decoration: none; transition: all 0.3s ease;
-  letter-spacing: 0.2px;
+.login-dark .server-config > a { color: #64748b; }
+.server-config > a:hover { color: #6366f1; }
+.server-config-input {
+  display: none;
+  margin-top: 8px;
+  text-align: left;
 }
-.forgot-password a:hover { color: #FFFFFF; text-decoration: underline; }
-
-.server-config { text-align: right; margin-top: -8px; margin-bottom: 16px; }
-.server-config > a { font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.35); text-decoration: none; transition: all 0.3s ease; cursor: pointer; }
-.server-config > a:hover { color: rgba(255,255,255,0.7); }
-.server-config-input { display: none; margin-top: 8px; text-align: left; }
 .server-config-input.show { display: block; }
-.server-config-input label { display: block; font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 4px; }
-.server-config-input input { width: 100%; padding: 8px 12px; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; background: rgba(255,255,255,0.06); color: #FFFFFF; font-size: 12px; font-family: 'Inter', sans-serif; outline: none; transition: all 0.3s ease; }
-.server-config-input input:focus { border-color: rgba(255,255,255,0.25); background: rgba(255,255,255,0.08); }
-.server-config-input input::placeholder { color: rgba(255,255,255,0.2); }
+.server-config-input label {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin-bottom: 4px;
+}
+.login-dark .server-config-input label { color: #64748b; }
+.server-config-input input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.6);
+  color: #0f172a;
+  font-size: 12px;
+  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+  outline: none;
+  transition: all 0.3s ease;
+}
+.login-dark .server-config-input input {
+  background: rgba(255,255,255,0.05);
+  border-color: rgba(255,255,255,0.1);
+  color: #f1f5f9;
+}
+.server-config-input input:focus {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99,102,241,0.1);
+}
 
+/* Footer */
 .login-footer {
-  text-align: center; margin-top: 24px;
-  font-size: 12px; font-weight: 600;
-  color: rgba(255,255,255,0.3);
-  letter-spacing: 0.5px;
+  text-align: center;
+  margin-top: 24px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #94a3b8;
+  letter-spacing: 0.3px;
+  position: relative;
+  z-index: 1;
 }
+.login-dark .login-footer { color: #64748b; }
 
-.dark-mode-toggle {
-  position: absolute; top: 16px; right: 16px;
-  width: 36px; height: 36px;
-  border-radius: 50%;
-  background: rgba(255,255,255,0.1);
-  border: 1px solid rgba(255,255,255,0.15);
-  display: flex; align-items: center; justify-content: center;
-  cursor: pointer; transition: all 0.3s ease;
-  color: rgba(255,255,255,0.5);
+/* Theme Toggle */
+.login-theme-toggle {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.6);
+  border: 1px solid rgba(226,232,240,0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.35s cubic-bezier(0.34,1.56,0.64,1);
+  color: #64748b;
   z-index: 5;
+  backdrop-filter: blur(8px);
 }
-.dark-mode-toggle:hover {
-  background: rgba(255,255,255,0.2);
-  color: #FFFFFF;
+.login-dark .login-theme-toggle {
+  background: rgba(255,255,255,0.06);
+  border-color: rgba(255,255,255,0.08);
+  color: #94a3b8;
 }
-.dark-mode-toggle .sun-icon { display: block; }
-.dark-mode-toggle .moon-icon { display: none; }
-.dark-mode-toggle.dark .sun-icon { display: none; }
-.dark-mode-toggle.dark .moon-icon { display: block; }
+.login-theme-toggle:hover {
+  background: rgba(255,255,255,0.85);
+  color: #6366f1;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(99,102,241,0.15);
+}
+.login-dark .login-theme-toggle:hover {
+  background: rgba(255,255,255,0.1);
+  color: #818cf8;
+}
+.login-theme-toggle .sun-icon { display: block; }
+.login-theme-toggle .moon-icon { display: none; }
+.login-theme-toggle.dark .sun-icon { display: none; }
+.login-theme-toggle.dark .moon-icon { display: block; }
 
-.login-dark .login-overlay { background: #0f0f1a; }
-.login-dark .login-card { background: #16162b; border-color: rgba(255,255,255,0.06); }
-.login-dark .dark-mode-toggle { background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.08); }
-.login-dark .login-welcome-text .welcome-line { color: rgba(255,255,255,0.2); }
+.login-dark .login-overlay { background: transparent; }
 
 /* ============= MAIN APP WRAPPER ============= */
 .app-wrapper {
@@ -901,9 +1269,8 @@ body {
   .sidebar-overlay.show { display: block; }
 }
 @media (max-width: 900px) {
-  .login-overlay { flex-direction: column; gap: 32px; padding: 40px 20px; }
-  .login-welcome-text { text-align: center; max-width: 320px; align-items: center; }
-  .welcome-bottom { font-size: 28px; }
+  .login-overlay { padding: 32px 20px; }
+  .login-card { padding: 40px 32px 36px; }
 }
 @media (max-width: 600px) {
   .stats-row { grid-template-columns: 1fr; }
@@ -918,9 +1285,10 @@ body {
   .glass-card { padding: 20px; }
   .sidebar { width: 100%; max-width: 280px; }
   .detail-grid { grid-template-columns: 1fr; }
-  .login-card { padding: 36px 28px 32px; }
-  .login-welcome-text { max-width: 220px; }
-  .welcome-bottom { font-size: 24px; }
+  .login-card { padding: 32px 24px 28px; }
+  .login-header h1 { font-size: 20px; }
+  .login-header .logo-icon { width: 44px; height: 44px; }
+  .login-header .logo-icon svg { width: 22px; height: 22px; }
   .results-table thead th { padding: 8px 6px; font-size: 10px; letter-spacing: 0.2px; }
   .results-table tbody td { padding: 8px 6px; font-size: 11px; }
 }
@@ -935,10 +1303,18 @@ body {
 <div class="neon-line neon-line-3"></div>
 <div class="neon-line neon-line-4"></div>
 
+<!-- ========= AURORA BACKGROUND ========= -->
+<div class="aurora-bg" id="auroraBg">
+  <div class="aurora-orb"></div>
+  <div class="aurora-orb"></div>
+  <div class="aurora-orb"></div>
+  <div class="aurora-orb"></div>
+</div>
+
 <!-- ========= LOGIN OVERLAY ========= -->
 <div class="login-overlay" id="loginOverlay">
     <div class="login-card">
-    <div class="dark-mode-toggle" id="loginDarkToggle" onclick="toggleLoginDarkMode()">
+    <div class="login-theme-toggle" id="loginThemeToggle" onclick="toggleLoginTheme()" aria-label="Toggle theme">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="sun-icon">
         <circle cx="12" cy="12" r="5"/>
         <line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
@@ -950,44 +1326,60 @@ body {
         <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
       </svg>
     </div>
-    <div class="login-header">
 
+    <div class="login-header">
+      <div class="logo-icon" aria-hidden="true">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="white"/>
+        </svg>
+      </div>
       <h1>Annual Performance</h1>
       <p>Sign in to access the evaluation system</p>
     </div>
+
     <div class="input-group">
-      <label>User ID</label>
       <div class="input-wrap">
-        <input type="text" id="userId" placeholder="Enter your user ID" autocomplete="off" onkeydown="if(event.key==='Enter')doLogin()">
+        <input type="text" id="userId" autocomplete="off" onkeydown="if(event.key==='Enter')doLogin()" oninput="onInputChange(this)" onblur="onInputBlur(this)">
         <span class="input-icon">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
             <circle cx="12" cy="7" r="4"/>
           </svg>
         </span>
+        <label class="floating-label" for="userId">User ID</label>
       </div>
+      <div class="error-message" id="userIdError"></div>
     </div>
+
     <div class="input-group">
-      <label>Password</label>
       <div class="input-wrap">
-        <input type="password" id="password" placeholder="Enter your password" onkeydown="if(event.key==='Enter')doLogin()">
+        <input type="password" id="password" autocomplete="off" onkeydown="if(event.key==='Enter')doLogin()" oninput="onInputChange(this)" onblur="onInputBlur(this)">
         <span class="input-icon">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
             <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
             <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
           </svg>
         </span>
-        <span class="password-toggle" id="passwordToggle" onclick="togglePassword()">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <label class="floating-label" for="password">Password</label>
+        <span class="password-toggle" id="passwordToggle" onclick="togglePassword()" role="button" tabindex="0" aria-label="Toggle password visibility">
+          <svg class="eye-icon eye-on" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
             <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
             <circle cx="12" cy="12" r="3"/>
           </svg>
+          <svg class="eye-icon eye-off" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
+            <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
+            <line x1="1" y1="1" x2="23" y2="23"/>
+          </svg>
         </span>
       </div>
+      <div class="error-message" id="passwordError"></div>
     </div>
+
     <div class="forgot-password">
       <a href="#" onclick="alert('Contact administrator to reset your password.'); return false;">Forgot password?</a>
     </div>
+
     <div class="server-config">
       <a href="#" onclick="toggleServerConfig(); return false;">&#9881; Server</a>
       <div class="server-config-input" id="serverConfigInput">
@@ -995,10 +1387,19 @@ body {
         <input type="url" id="apiBaseUrlInput" placeholder="https://your-server.onrender.com" onchange="saveApiBaseUrl()">
       </div>
     </div>
+
     <button class="login-btn" id="loginBtn" onclick="doLogin()">
-      <span class="btn-text">LOG IN</span>
+      <span class="btn-text">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+          <polyline points="10 17 15 12 10 7"/>
+          <line x1="15" y1="12" x2="3" y2="12"/>
+        </svg>
+        Sign In
+      </span>
       <div class="spinner"></div>
     </button>
+
     <div class="login-error" id="loginError"></div>
     <div class="login-footer">&copy; 2026 Annual Performance Dashboard &mdash; Secure Access</div>
   </div>
@@ -1470,11 +1871,81 @@ function togglePassword() {
   }
 }
 
-function toggleLoginDarkMode() {
+// Floating label helpers
+function onInputChange(el) {
+  if (el.value.trim()) {
+    el.classList.add('has-value');
+  } else {
+    el.classList.remove('has-value');
+  }
+  // Clear error state on input
+  var parent = el.closest('.input-group');
+  if (parent) {
+    el.classList.remove('has-error');
+    var errMsg = parent.querySelector('.error-message');
+    if (errMsg) errMsg.classList.remove('show');
+  }
+}
+
+function onInputBlur(el) {
+  onInputChange(el);
+}
+
+// Theme toggle with localStorage persistence
+function toggleLoginTheme() {
   var overlay = document.getElementById('loginOverlay');
-  var toggle = document.getElementById('loginDarkToggle');
+  var toggle = document.getElementById('loginThemeToggle');
+  var aurora = document.getElementById('auroraBg');
   overlay.classList.toggle('login-dark');
   toggle.classList.toggle('dark');
+  if (aurora) {
+    aurora.classList.toggle('dark-theme');
+    aurora.classList.toggle('light-theme');
+  }
+  var isDark = overlay.classList.contains('login-dark');
+  try { localStorage.setItem('loginTheme', isDark ? 'dark' : 'light'); } catch(e) {}
+}
+
+function initLoginTheme() {
+  var saved = null;
+  try { saved = localStorage.getItem('loginTheme'); } catch(e) {}
+  var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  if (saved === 'dark' || (!saved && prefersDark)) {
+    var overlay = document.getElementById('loginOverlay');
+    var toggle = document.getElementById('loginThemeToggle');
+    var aurora = document.getElementById('auroraBg');
+    overlay.classList.add('login-dark');
+    toggle.classList.add('dark');
+    if (aurora) {
+      aurora.classList.add('dark-theme');
+      aurora.classList.remove('light-theme');
+    }
+  }
+}
+
+// Ripple effect
+function addRipple(e, btn) {
+  var rect = btn.getBoundingClientRect();
+  var size = Math.max(rect.width, rect.height);
+  var x = e.clientX - rect.left - size / 2;
+  var y = e.clientY - rect.top - size / 2;
+  var ripple = document.createElement('span');
+  ripple.className = 'ripple';
+  ripple.style.cssText = 'width:'+size+'px;height:'+size+'px;left:'+x+'px;top:'+y+'px';
+  btn.appendChild(ripple);
+  setTimeout(function() { ripple.remove(); }, 600);
+}
+
+function clearFieldErrors() {
+  var inputs = document.querySelectorAll('.input-group input');
+  for (var i = 0; i < inputs.length; i++) {
+    inputs[i].classList.remove('has-error');
+    var parent = inputs[i].closest('.input-group');
+    if (parent) {
+      var errMsg = parent.querySelector('.error-message');
+      if (errMsg) errMsg.classList.remove('show');
+    }
+  }
 }
 
 function doLogin() {
@@ -1482,13 +1953,36 @@ function doLogin() {
   var password = document.getElementById('password').value;
   var errorEl = document.getElementById('loginError');
   var btn = document.getElementById('loginBtn');
+  var userIdInput = document.getElementById('userId');
+  var passwordInput = document.getElementById('password');
 
-  if (!userId || !password) {
-    errorEl.textContent = 'Please enter both User ID and Password.';
-    errorEl.classList.add('show');
-    return;
-  }
+  clearFieldErrors();
   errorEl.classList.remove('show');
+
+  var hasError = false;
+
+  if (!userId) {
+    userIdInput.classList.add('has-error');
+    var parent = userIdInput.closest('.input-group');
+    if (parent) {
+      var errMsg = parent.querySelector('.error-message');
+      if (errMsg) { errMsg.textContent = 'User ID is required'; errMsg.classList.add('show'); }
+    }
+    hasError = true;
+  }
+
+  if (!password) {
+    passwordInput.classList.add('has-error');
+    var parent = passwordInput.closest('.input-group');
+    if (parent) {
+      var errMsg = parent.querySelector('.error-message');
+      if (errMsg) { errMsg.textContent = 'Password is required'; errMsg.classList.add('show'); }
+    }
+    hasError = true;
+  }
+
+  if (hasError) return;
+
   btn.classList.add('loading');
 
   // Clear any stale cached data from previous sessions
@@ -1513,6 +2007,8 @@ function doLogin() {
     }
     errorEl.textContent = 'Invalid User ID or Password. Please try again.';
     errorEl.classList.add('show');
+    userIdInput.classList.add('has-error');
+    passwordInput.classList.add('has-error');
   }, 500);
 }
 
@@ -2759,6 +3255,14 @@ function escHtml(s) {
   d.textContent = s;
   return d.innerHTML;
 }
+
+// ========== INIT ==========
+initLoginTheme();
+
+// Ripple effect on login button
+document.getElementById('loginBtn').addEventListener('click', function(e) {
+  addRipple(e, this);
+});
 
 // ========== STAR & RAIN ANIMATION ==========
 var starCanvas = document.getElementById('starCanvas');
