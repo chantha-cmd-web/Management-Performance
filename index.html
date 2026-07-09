@@ -10,9 +10,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<!-- Firebase scripts removed - using backend API for data access -->
 <style>
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 ::-webkit-scrollbar { width: 5px; }
@@ -1179,8 +1177,8 @@ body {
           <button class="btn btn-export btn-sm" onclick="exportToJSON()">&#128203; JSON</button>
           <button class="btn btn-export btn-sm" onclick="exportToExcel()">&#128202; Excel</button>
           <button class="btn btn-import btn-sm" id="sendBulkTgBtn" onclick="sendBulkToTelegram()" style="background:#0088cc;color:#fff">&#128260; Bulk TG</button>
-          <button class="btn btn-import btn-sm" onclick="importFromFile()">&#128194; Import</button>
-          <button class="btn btn-danger btn-sm" onclick="clearAllData()">&#128465; Clear</button>
+          <button class="btn btn-import btn-sm" id="importBtn" onclick="importFromFile()">&#128194; Import</button>
+          <button class="btn btn-danger btn-sm" id="clearBtn" onclick="clearAllData()">&#128465; Clear</button>
         </div>
       </div>
       <div class="results-table-wrap">
@@ -1195,6 +1193,7 @@ body {
               <th>Supervisor</th>
               <th>Overall</th>
               <th>ការវាយតម្លៃ / Rating</th>
+              <th class="created-by-col" style="display:none">Created By</th>
               <th>សកម្មភាព / Action</th>
             </tr>
           </thead>
@@ -1325,23 +1324,64 @@ body {
 <div class="toast" id="toast"></div>
 
 <script>
-// ========== FIRESTORE INIT ==========
-var firebaseConfig = {
-  apiKey: "AIzaSyA33nN_PXTZBYtIT33Dm64SpiV0RJlEVag",
-  authDomain: "performance-200aa.firebaseapp.com",
-  projectId: "performance-200aa",
-  storageBucket: "performance-200aa.firebasestorage.app",
-  messagingSenderId: "871754927517",
-  appId: "1:871754927517:web:416f6aaa318e53214bb374",
-  measurementId: "G-20VKQJPR1F"
-};
-firebase.initializeApp(firebaseConfig);
-var db = firebase.firestore();
-firebase.firestore().enablePersistence().catch(function(){});
-var _fsReady = false;
-var _fsUnsubscribe = null;
+// ========== API CONFIGURATION ==========
+var API_BASE = localStorage.getItem('apiBaseUrl') || window.location.origin;
+var AUTH_TOKEN = null;
+var _pollInterval = null;
+var _isSyncing = false;
 
-// ========== FIRESTORE SYNC ==========
+function apiGet(path) {
+  var headers = {};
+  if (AUTH_TOKEN) headers['Authorization'] = 'Bearer ' + AUTH_TOKEN;
+  return fetch(API_BASE + path, { headers: headers }).then(function(r) {
+    if (r.status === 401) { doLogout(); throw new Error('Session expired'); }
+    if (!r.ok) return r.json().then(function(e) { throw new Error(e.error || 'Request failed'); });
+    return r.json();
+  });
+}
+
+function apiPost(path, body) {
+  var headers = { 'Content-Type': 'application/json' };
+  if (AUTH_TOKEN) headers['Authorization'] = 'Bearer ' + AUTH_TOKEN;
+  return fetch(API_BASE + path, {
+    method: 'POST',
+    headers: headers,
+    body: JSON.stringify(body)
+  }).then(function(r) {
+    if (r.status === 401) { doLogout(); throw new Error('Session expired'); }
+    if (!r.ok) return r.json().then(function(e) { throw new Error(e.error || 'Request failed'); });
+    return r.json();
+  });
+}
+
+function apiPut(path, body) {
+  var headers = { 'Content-Type': 'application/json' };
+  if (AUTH_TOKEN) headers['Authorization'] = 'Bearer ' + AUTH_TOKEN;
+  return fetch(API_BASE + path, {
+    method: 'PUT',
+    headers: headers,
+    body: JSON.stringify(body)
+  }).then(function(r) {
+    if (r.status === 401) { doLogout(); throw new Error('Session expired'); }
+    if (!r.ok) return r.json().then(function(e) { throw new Error(e.error || 'Request failed'); });
+    return r.json();
+  });
+}
+
+function apiDel(path) {
+  var headers = {};
+  if (AUTH_TOKEN) headers['Authorization'] = 'Bearer ' + AUTH_TOKEN;
+  return fetch(API_BASE + path, {
+    method: 'DELETE',
+    headers: headers
+  }).then(function(r) {
+    if (r.status === 401) { doLogout(); throw new Error('Session expired'); }
+    if (!r.ok) return r.json().then(function(e) { throw new Error(e.error || 'Request failed'); });
+    return r.json();
+  });
+}
+
+// ========== API SYNC ==========
 function saveToStorage() {
   try { localStorage.setItem('evalData', JSON.stringify(evaluations)); } catch(e) {}
 }
@@ -1350,30 +1390,35 @@ function loadFromStorage() {
   try { var saved = localStorage.getItem('evalData'); if (saved) { evaluations = JSON.parse(saved); } } catch(e) {}
 }
 
-function startFsListener() {
-  if (_fsUnsubscribe) _fsUnsubscribe();
-  _fsUnsubscribe = firebase.firestore().collection('evaluations')
-    .orderBy('timestamp', 'asc')
-    .onSnapshot(function(snapshot) {
-      evaluations = [];
-      snapshot.forEach(function(doc) {
-        var data = doc.data();
-        data._id = doc.id;
-        evaluations.push(data);
-      });
-      _fsReady = true;
-      saveToStorage();
-      renderTable();
-      updateStats();
-      var toast = document.getElementById('toast');
-      if (evaluations.length) {
-        toast.textContent = evaluations.length + ' records synced from server';
-        toast.className = 'toast toast-success show';
-        setTimeout(function(){toast.classList.remove('show');},2000);
-      }
-    }, function(err) {
-      console.warn('Firestore error, using local data:', err);
-    });
+function syncFromServer() {
+  if (_isSyncing || !AUTH_TOKEN) return;
+  _isSyncing = true;
+  apiGet('/api/evaluations').then(function(data) {
+    evaluations = data || [];
+    saveToStorage();
+    renderTable();
+    updateStats();
+    var toast = document.getElementById('toast');
+    if (evaluations.length) {
+      toast.textContent = evaluations.length + ' records synced from server';
+      toast.className = 'toast toast-success show';
+      setTimeout(function(){toast.classList.remove('show');},2000);
+    }
+    _isSyncing = false;
+  }).catch(function(err) {
+    _isSyncing = false;
+    console.warn('Sync error:', err);
+  });
+}
+
+function startPolling() {
+  stopPolling();
+  syncFromServer();
+  _pollInterval = setInterval(syncFromServer, 5000);
+}
+
+function stopPolling() {
+  if (_pollInterval) { clearInterval(_pollInterval); _pollInterval = null; }
 }
 
 function getEvalById(id) {
@@ -1391,19 +1436,6 @@ function getEvalIndex(id) {
 }
 
 // ========== USERS ==========
-var USERS = [
-  { id: '201760', name: 'LAV SREY NET', password: 'admin123', role: 'admin' },
-  { id: '13177', name: 'IN SOPHOAN', password: 'admin123', role: 'admin' },
-  { id: '201578', name: 'KING ROTH MONY', password: 'admin123', role: 'admin' },
-  { id: '1005', name: 'KAO VANNAK', password: 'admin123', role: 'admin' },
-  { id: '1006', name: 'HOU PHALKUN', password: 'admin123', role: 'admin' },
-  { id: '1019', name: 'VUN SOPHATH', password: 'admin123', role: 'admin' },
-  { id: '2002', name: 'TINA MARIE ESTIOKO', password: 'admin123', role: 'admin' },
-  { id: '201580', name: 'CHAN THEA', password: 'admin123', role: 'admin' },
-  { id: '240256', name: 'CHAN SAMBATH', password: 'admin123', role: 'admin' },
-  { id: '201674', name: 'LY BUNTHOEUN', password: 'admin123', role: 'admin' }
-];
-var SUPER_ADMIN = { id: 'superadmin', name: 'Super Administrator', password: 'super@2024', role: 'superadmin' };
 var currentUser = null;
 var editingUserId = null;
 
@@ -1441,34 +1473,22 @@ function doLogin() {
   errorEl.classList.remove('show');
   btn.classList.add('loading');
 
-  setTimeout(function() {
+  apiPost('/api/auth/login', { userId: userId, password: password }).then(function(res) {
     btn.classList.remove('loading');
-    if (userId.toLowerCase() === SUPER_ADMIN.id && password === SUPER_ADMIN.password) {
-      currentUser = SUPER_ADMIN;
-      enterApp();
-      return;
-    }
-    for (var i = 0; i < USERS.length; i++) {
-      if (USERS[i].id === userId && USERS[i].password === password) {
-        currentUser = USERS[i];
-        enterApp();
-        return;
-      }
-    }
+    AUTH_TOKEN = res.token;
+    currentUser = res.user;
+    enterApp();
+  }).catch(function(err) {
+    btn.classList.remove('loading');
     errorEl.textContent = 'Invalid User ID or Password. Please try again.';
     errorEl.classList.add('show');
-  }, 1000);
+  });
 }
 
 function enterApp() {
   document.getElementById('loginOverlay').classList.add('hidden');
   document.getElementById('appWrapper').classList.add('show');
   document.getElementById('password').value = '';
-
-  // Authenticate with Firebase anonymously for Firestore access
-  firebase.auth().signInAnonymously().catch(function(err) {
-    console.warn('Firebase anonymous auth failed:', err);
-  });
 
   var nameParts = currentUser.name.split(' ');
   var initials = (nameParts[0][0] || 'U') + (nameParts[nameParts.length - 1][0] || '');
@@ -1477,15 +1497,27 @@ function enterApp() {
   document.getElementById('sidebarRole').textContent = currentUser.role === 'superadmin' ? 'Super Administrator' : 'Administrator';
 
   var manageBtn = document.getElementById('manageUsersSidebarBtn');
+  var importBtn = document.getElementById('importBtn');
+  var clearBtn = document.getElementById('clearBtn');
   if (currentUser.role === 'superadmin') {
     manageBtn.style.display = '';
+    if (importBtn) importBtn.style.display = '';
+    if (clearBtn) clearBtn.style.display = '';
   } else {
     manageBtn.style.display = 'none';
+    if (importBtn) importBtn.style.display = 'none';
+    if (clearBtn) clearBtn.style.display = 'none';
   }
+
+  startPolling();
 }
 
 function doLogout() {
   currentUser = null;
+  AUTH_TOKEN = null;
+  stopPolling();
+  evaluations = [];
+  try { localStorage.removeItem('evalData'); } catch(e) {}
   document.getElementById('appWrapper').classList.remove('show');
   document.getElementById('loginOverlay').classList.remove('hidden');
   document.getElementById('userId').value = '';
@@ -1504,46 +1536,49 @@ function closeSidebar() {
 }
 
 // ========== MANAGE USERS ==========
+var _cachedUsers = [];
+
 function renderManageUsers() {
   var tbody = document.getElementById('manageUsersBody');
   var noData = document.getElementById('noManageUsers');
-  var allUsers = [SUPER_ADMIN].concat(USERS);
-  var query = (document.getElementById('userSearchInput').value || '').toLowerCase().trim();
-
-  // Filter
-  if (query) {
-    allUsers = allUsers.filter(function(u){
-      return u.id.toLowerCase().indexOf(query) !== -1
-        || u.name.toLowerCase().indexOf(query) !== -1;
-    });
-  }
-
-  // Stats
-  var total = allUsers.length;
-  var admins = allUsers.filter(function(u){return u.role==='admin'}).length;
-  var superAdmins = allUsers.filter(function(u){return u.role==='superadmin'}).length;
-  document.getElementById('statTotalUsers').textContent = total;
-  document.getElementById('statAdmins').textContent = admins;
-  document.getElementById('statSuperAdmins').textContent = superAdmins;
-  document.getElementById('statActiveUsers').textContent = total;
-
-  if (!allUsers.length) { tbody.innerHTML = ''; noData.style.display = 'block'; return; }
-  noData.style.display = 'none';
-  var html = '';
-  for (var i = 0; i < allUsers.length; i++) {
-    var u = allUsers[i];
-    var roleLabel = u.role === 'superadmin' ? 'Super Admin' : 'Admin';
-    var roleClass = u.role === 'superadmin' ? 'superadmin' : 'admin';
-    html += '<tr>'
-      + '<td><strong>' + escHtml(u.id) + '</strong></td>'
-      + '<td><strong>' + escHtml(u.name) + '</strong></td>'
-      + '<td><span class="role-badge ' + roleClass + '">' + roleLabel + '</span></td>'
-      + '<td style="text-align:right">'
-      + '<button class="btn-icon-sm" onclick="editUser(\'' + u.id + '\')" title="Edit">&#9998;</button> '
-      + '<button class="btn-icon-sm" onclick="deleteUser(\'' + u.id + '\')" title="Delete" style="color:rgba(239,68,68,0.5)">&#128465;</button>'
-      + '</td></tr>';
-  }
-  tbody.innerHTML = html;
+  apiGet('/api/auth/users').then(function(users) {
+    _cachedUsers = users;
+    var query = (document.getElementById('userSearchInput').value || '').toLowerCase().trim();
+    var filtered = users;
+    if (query) {
+      filtered = users.filter(function(u) {
+        return u.id.toLowerCase().indexOf(query) !== -1
+          || u.name.toLowerCase().indexOf(query) !== -1;
+      });
+    }
+    var total = filtered.length;
+    var admins = filtered.filter(function(u){return u.role === 'admin'}).length;
+    var superAdmins = filtered.filter(function(u){return u.role === 'superadmin'}).length;
+    document.getElementById('statTotalUsers').textContent = total;
+    document.getElementById('statAdmins').textContent = admins;
+    document.getElementById('statSuperAdmins').textContent = superAdmins;
+    document.getElementById('statActiveUsers').textContent = total;
+    if (!filtered.length) { tbody.innerHTML = ''; noData.style.display = 'block'; return; }
+    noData.style.display = 'none';
+    var html = '';
+    for (var i = 0; i < filtered.length; i++) {
+      var u = filtered[i];
+      var roleLabel = u.role === 'superadmin' ? 'Super Admin' : 'Admin';
+      var roleClass = u.role === 'superadmin' ? 'superadmin' : 'admin';
+      html += '<tr>'
+        + '<td><strong>' + escHtml(u.id) + '</strong></td>'
+        + '<td><strong>' + escHtml(u.name) + '</strong></td>'
+        + '<td><span class="role-badge ' + roleClass + '">' + roleLabel + '</span></td>'
+        + '<td style="text-align:right">'
+        + '<button class="btn-icon-sm" onclick="editUser(\'' + u.id + '\')" title="Edit">&#9998;</button> '
+        + '<button class="btn-icon-sm" onclick="deleteUser(\'' + u.id + '\')" title="Delete" style="color:rgba(239,68,68,0.5)">&#128465;</button>'
+        + '</td></tr>';
+    }
+    tbody.innerHTML = html;
+  }).catch(function() {
+    tbody.innerHTML = '';
+    noData.style.display = 'block';
+  });
 }
 
 function openAddUserModal() {
@@ -1558,16 +1593,17 @@ function openAddUserModal() {
 }
 
 function editUser(id) {
-  var allUsers = [SUPER_ADMIN].concat(USERS);
   var user = null;
-  for (var i = 0; i < allUsers.length; i++) { if (allUsers[i].id === id) { user = allUsers[i]; break; } }
+  for (var i = 0; i < _cachedUsers.length; i++) {
+    if (_cachedUsers[i].id === id) { user = _cachedUsers[i]; break; }
+  }
   if (!user) return;
   editingUserId = id;
   document.getElementById('userModalTitle').textContent = '\u{1F4DF} Edit User';
   document.getElementById('saveUserBtn').textContent = 'Update User';
   document.getElementById('mUserId').value = user.id;
   document.getElementById('mUserName').value = user.name;
-  document.getElementById('mPassword').value = user.password;
+  document.getElementById('mPassword').value = '';
   document.getElementById('mRole').value = user.role;
   document.getElementById('userModal').classList.add('show');
 }
@@ -1581,33 +1617,32 @@ function saveUser() {
   var role = document.getElementById('mRole').value;
   if (!uid || !name || !password) { showToast('Please fill all fields.', 'error'); return; }
   if (editingUserId) {
-    if (editingUserId === SUPER_ADMIN.id) {
-      SUPER_ADMIN.name = name; SUPER_ADMIN.password = password; SUPER_ADMIN.role = role;
-      showToast('Super Admin updated successfully.', 'success');
-    } else {
-      for (var i = 0; i < USERS.length; i++) {
-        if (USERS[i].id === editingUserId) {
-          USERS[i].name = name; USERS[i].password = password; USERS[i].role = role;
-          if (editingUserId !== uid) USERS[i].id = uid;
-          break;
-        }
-      }
+    apiPut('/api/users/' + editingUserId, { id: uid, name: name, password: password, role: role }).then(function() {
       showToast('User updated successfully.', 'success');
-    }
+      closeUserModal();
+      renderManageUsers();
+    }).catch(function(err) {
+      showToast(err.message || 'Failed to update user', 'error');
+    });
   } else {
-    USERS.push({ id: uid, name: name, password: password, role: role });
-    showToast('User added successfully.', 'success');
+    apiPost('/api/users', { id: uid, name: name, password: password, role: role }).then(function() {
+      showToast('User added successfully.', 'success');
+      closeUserModal();
+      renderManageUsers();
+    }).catch(function(err) {
+      showToast(err.message || 'Failed to add user', 'error');
+    });
   }
-  closeUserModal();
-  renderManageUsers();
 }
 
 function deleteUser(id) {
-  if (id === SUPER_ADMIN.id) { showToast('Cannot delete the Super Admin account.', 'error'); return; }
   if (!confirm('Are you sure you want to delete user ' + id + '?')) return;
-  for (var i = 0; i < USERS.length; i++) { if (USERS[i].id === id) { USERS.splice(i, 1); break; } }
-  showToast('User deleted successfully.', 'success');
-  renderManageUsers();
+  apiDel('/api/users/' + id).then(function() {
+    showToast('User deleted successfully.', 'success');
+    renderManageUsers();
+  }).catch(function(err) {
+    showToast(err.message || 'Failed to delete user', 'error');
+  });
 }
 
 // ========== EXISTING DATA ==========
@@ -2001,19 +2036,20 @@ function submitEvaluation() {
     criteria: data.criteria.map(function(c){return{id:c.id,self:c.self};}),
     superScores: data.superScores.map(function(s){return{id:s.id,super:s.super};}),
     totalSelf: data.totalSelf, totalSuper: data.totalSuper,
-    overallScore: overallScore, timestamp: new Date().toISOString()
+    overallScore: overallScore
   };
   var btn = document.getElementById('submitBtn');
   btn.disabled = true;
   btn.innerHTML = '<span class="btn-text">Submitting...</span><div class="spinner"></div>';
-  firebase.firestore().collection('evaluations').add(entry).then(function() {
+  apiPost('/api/evaluations', entry).then(function() {
     btn.disabled = false;
     btn.innerHTML = '<span class="btn-text">\u2713 ដាក់ស្នើ / Submit</span>';
     resetForm();
     showToast('\u1794\u17D2\u179A\u17C0\u1794\u17B6\u1793\u17CB! / Synced successfully!','success');
+    syncFromServer();
     showDashboard();
   }).catch(function(err) {
-    console.warn('Firestore write failed, saving locally:', err);
+    console.warn('API write failed, saving locally:', err);
     evaluations.push(entry);
     saveToStorage();
     btn.disabled = false;
@@ -2074,6 +2110,11 @@ function renderTable() {
   var noData = document.getElementById('noData');
   if (!filtered.length) { tbody.innerHTML = ''; if (!evaluations.length) noData.style.display = 'block'; return; }
   noData.style.display = 'none';
+  var showCreator = currentUser && currentUser.role === 'superadmin';
+  var createdByCells = document.querySelectorAll('.created-by-col');
+  for (var ci = 0; ci < createdByCells.length; ci++) {
+    createdByCells[ci].style.display = showCreator ? '' : 'none';
+  }
   var html = '';
   for (var i = 0; i < filtered.length; i++) {
     var origIdx = filteredIdx[i];
@@ -2090,6 +2131,7 @@ function renderTable() {
       + '<td style="font-family:Inter,sans-serif;font-weight:500;cursor:pointer" onclick="viewDetail(\''+docId+'\')">'+(parseFloat(e.totalSuper)||0).toFixed(1)+'</td>'
       + '<td style="font-family:Inter,sans-serif;font-weight:700;color:#1a2a4a;cursor:pointer" onclick="viewDetail(\''+docId+'\')">'+ov.toFixed(1)+'</td>'
       + '<td style="cursor:pointer" onclick="viewDetail(\''+docId+'\')"><span class="badge badge-'+cls+'">'+lbl+'</span></td>'
+      + (showCreator ? '<td style="font-family:Inter,sans-serif;font-size:13px;color:rgba(15,23,42,0.5)">'+escHtml(e.createdByName||'')+'</td>' : '')
       + '<td style="text-align:right;white-space:nowrap">'
       + '<button class="btn-action btn-view" onclick="viewDetail(\''+docId+'\')">&#128065; View</button> '
       + '<button class="btn-action btn-delete-sm" onclick="event.stopPropagation();deleteEval(\''+docId+'\')">&#128465;</button>'
@@ -2116,6 +2158,10 @@ function viewDetail(id) {
   }
   var ov = parseFloat(e.overallScore)||0, op = Math.min(ov,100);
   var oc = op>=80?'#059669':op>=60?'#d97706':'#dc2626';
+  var createdByHtml = '';
+  if (currentUser && currentUser.role === 'superadmin' && e.createdByName) {
+    createdByHtml = '<div class="detail-item"><div class="label">បង្កើតដោយ / Created By</div><div class="value">'+escHtml(e.createdByName||'')+' (ID: '+escHtml(e.createdById||'')+')</div></div>';
+  }
   document.getElementById('modalBody').innerHTML = ''
     + '<div class="detail-grid">'
     + '<div class="detail-item"><div class="label">ឈ្មោះ / Name</div><div class="value">'+escHtml(e.employeeName||'')+'</div></div>'
@@ -2124,6 +2170,7 @@ function viewDetail(id) {
     + '<div class="detail-item"><div class="label">តួនាទី / Position</div><div class="value">'+escHtml(e.position||'')+'</div></div>'
     + '<div class="detail-item"><div class="label">អ្នកវាយតម្លៃ / Appraiser</div><div class="value">'+escHtml(e.appraiser||'')+'</div></div>'
     + '<div class="detail-item"><div class="label">កាលបរិច្ឆេទ / Review Date</div><div class="value">'+escHtml(e.reviewDate||'')+'</div></div>'
+    + createdByHtml
     + '</div>'
     + '<h3 style="font-size:18px;font-weight:800;color:#0f172a;margin-bottom:16px;">ពិន្ទុវាយតម្លៃ / Scores</h3>'
     + '<div style="overflow-x:auto"><table class="results-table" style="min-width:600px"><thead><tr>'
@@ -2145,11 +2192,12 @@ function deleteEval(docId) {
   var e = getEvalById(docId);
   if (!e) return;
   if (!confirm('តើអ្នកប្រាកដថាចង់លុបការវាយតម្លៃនេះទេ?\nAre you sure you want to delete this evaluation?')) return;
-  firebase.firestore().collection('evaluations').doc(docId).delete().then(function() {
+  apiDel('/api/evaluations/' + docId).then(function() {
     closeModal();
     showToast('បានលុបដោយជោគជ័យ! / Deleted successfully!','success');
+    syncFromServer();
   }).catch(function(err) {
-    console.warn('Firestore delete failed, removing locally:', err);
+    console.warn('API delete failed, removing locally:', err);
     var idx = getEvalIndex(docId);
     if (idx >= 0) evaluations.splice(idx, 1);
     saveToStorage();
@@ -2169,14 +2217,11 @@ function deleteCurrentEval() {
 function clearAllData() {
   if (!evaluations.length) return;
   if (!confirm('តើអ្នកប្រាកដថាចង់លុបទិន្នន័យទាំងអស់?\nAre you sure you want to clear ALL data?')) return;
-  firebase.firestore().collection('evaluations').get().then(function(snapshot) {
-    var batch = firebase.firestore().batch();
-    snapshot.forEach(function(doc) { batch.delete(doc.ref); });
-    return batch.commit();
-  }).then(function() {
+  apiDel('/api/evaluations').then(function() {
     showToast('All data cleared from server!','success');
+    syncFromServer();
   }).catch(function(err) {
-    console.warn('Firestore clear failed, clearing locally:', err);
+    console.warn('API clear failed, clearing locally:', err);
     evaluations = [];
     saveToStorage();
     renderTable();
@@ -2324,7 +2369,11 @@ function exportSingleJSON() {
 function excelHeader() {
   var h=['ID','Employee','Campus','Position','Gender','Hired Date','Appraiser','Review Date'];
   for (var k=0;k<CRITERIA.length;k++) { h.push('C'+(k+1)+' Self'); h.push('C'+(k+1)+' Super'); }
-  return h.concat(['Total Self','Total Super','Overall Score']);
+  h = h.concat(['Total Self','Total Super','Overall Score']);
+  if (currentUser && currentUser.role === 'superadmin') {
+    h.push('Created By ID', 'Created By Name');
+  }
+  return h;
 }
 
 function excelRow(e) {
@@ -2333,7 +2382,11 @@ function excelRow(e) {
     var s=(e.criteria&&e.criteria[j])||{}, sup=(e.superScores&&e.superScores[j])||{};
     r.push(s.self||0); r.push(sup.super||0);
   }
-  return r.concat([parseFloat(e.totalSelf)||0,parseFloat(e.totalSuper)||0,parseFloat(e.overallScore)||0]);
+  r = r.concat([parseFloat(e.totalSelf)||0,parseFloat(e.totalSuper)||0,parseFloat(e.overallScore)||0]);
+  if (currentUser && currentUser.role === 'superadmin') {
+    r.push(e.createdById||'', e.createdByName||'');
+  }
+  return r;
 }
 
 function exportToExcel() {
@@ -2611,15 +2664,11 @@ function importFromFile() {
           }
           if (!imported.length) { showToast('No valid records found','error'); return; }
         }
-        var promises = [];
-        for (var x=0;x<imported.length;x++) {
-          imported[x].timestamp = new Date().toISOString();
-          promises.push(firebase.firestore().collection('evaluations').add(imported[x]));
-        }
-        Promise.all(promises).then(function() {
-          showToast('Added '+imported.length+' records. Syncing across devices...','success');
+        apiPost('/api/evaluations/import', { records: imported }).then(function(res) {
+          showToast('Added '+res.count+' records. Syncing across devices...','success');
+          syncFromServer();
         }).catch(function() {
-          showToast('Added '+imported.length+' records. Offline sync pending.','success');
+          showToast('Added '+imported.length+' records. Sync pending.','success');
         });
       } catch(err) { showToast('Invalid '+ext.toUpperCase()+' file','error'); }
     };
@@ -2749,7 +2798,6 @@ animateStars();
 // ========== INIT ==========
 fetchEmployeesFromSheet();
 initCriteria();
-// Load cached data for instant display, then wait for auth to start Firestore listener
 try { var saved = localStorage.getItem('evalData'); if (saved) { evaluations = JSON.parse(saved); } } catch(e) {}
 fetchSelfScores();
 var _refreshTimer = setInterval(function() {
@@ -2758,11 +2806,6 @@ var _refreshTimer = setInterval(function() {
     if (idEl && idEl.value) applySelfScores(idEl.value);
   });
 }, 30000);
-firebase.auth().onAuthStateChanged(function(user) {
-  if (user) {
-    startFsListener();
-  }
-});
 </script>
 </body>
 </html>
