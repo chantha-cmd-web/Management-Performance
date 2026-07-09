@@ -2905,7 +2905,10 @@ function exportSingleJSON() {
 
 function excelHeader() {
   var h=['ID','Employee','Campus','Position','Gender','Hired Date','Appraiser','Review Date'];
-  for (var k=0;k<CRITERIA.length;k++) { h.push('C'+(k+1)+' Self'); h.push('C'+(k+1)+' Super'); }
+  for (var k=0;k<CRITERIA.length;k++) {
+    var c=CRITERIA[k];
+    h.push(c.en+' (Self)', c.en+' (Super)');
+  }
   h = h.concat(['Total Self','Total Super','Overall Score']);
   if (currentUser && currentUser.role === 'superadmin') {
     h.push('Created By ID', 'Created By Name');
