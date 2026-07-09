@@ -190,6 +190,16 @@ body {
 }
 .forgot-password a:hover { color: #FFFFFF; text-decoration: underline; }
 
+.server-config { text-align: right; margin-top: -8px; margin-bottom: 16px; }
+.server-config > a { font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.35); text-decoration: none; transition: all 0.3s ease; cursor: pointer; }
+.server-config > a:hover { color: rgba(255,255,255,0.7); }
+.server-config-input { display: none; margin-top: 8px; text-align: left; }
+.server-config-input.show { display: block; }
+.server-config-input label { display: block; font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 4px; }
+.server-config-input input { width: 100%; padding: 8px 12px; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; background: rgba(255,255,255,0.06); color: #FFFFFF; font-size: 12px; font-family: 'Inter', sans-serif; outline: none; transition: all 0.3s ease; }
+.server-config-input input:focus { border-color: rgba(255,255,255,0.25); background: rgba(255,255,255,0.08); }
+.server-config-input input::placeholder { color: rgba(255,255,255,0.2); }
+
 .login-footer {
   text-align: center; margin-top: 24px;
   font-size: 12px; font-weight: 600;
@@ -976,6 +986,13 @@ body {
     <div class="forgot-password">
       <a href="#" onclick="alert('Contact administrator to reset your password.'); return false;">Forgot password?</a>
     </div>
+    <div class="server-config">
+      <a href="#" onclick="toggleServerConfig(); return false;">&#9881; Server</a>
+      <div class="server-config-input" id="serverConfigInput">
+        <label>Backend API URL</label>
+        <input type="url" id="apiBaseUrlInput" placeholder="https://your-server.onrender.com" onchange="saveApiBaseUrl()">
+      </div>
+    </div>
     <button class="login-btn" id="loginBtn" onclick="doLogin()">
       <span class="btn-text">LOG IN</span>
       <div class="spinner"></div>
@@ -1434,6 +1451,32 @@ function getEvalIndex(id) {
   }
   return -1;
 }
+
+// ========== SERVER CONFIG ==========
+function toggleServerConfig() {
+  var el = document.getElementById('serverConfigInput');
+  el.classList.toggle('show');
+}
+
+function saveApiBaseUrl() {
+  var val = document.getElementById('apiBaseUrlInput').value.trim();
+  if (val) {
+    localStorage.setItem('apiBaseUrl', val);
+    API_BASE = val;
+    showToast('Server URL saved', 'success');
+  } else {
+    localStorage.removeItem('apiBaseUrl');
+    API_BASE = window.location.origin;
+  }
+}
+
+// Pre-fill server URL input on page load
+(function() {
+  var saved = localStorage.getItem('apiBaseUrl');
+  if (saved) {
+    document.getElementById('apiBaseUrlInput').value = saved;
+  }
+})();
 
 // ========== USERS ==========
 var currentUser = null;
