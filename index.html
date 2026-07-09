@@ -1369,25 +1369,34 @@ function loadFromStorage() {
 }
 
 function getEvalQuery() {
-  if (!currentUser) return db.collection('evaluations').orderBy('timestamp', 'asc');
+  if (!currentUser) return null;
   if (currentUser.role === 'superadmin') {
-    return db.collection('evaluations').orderBy('timestamp', 'asc');
+    return db.collection('evaluations');
   }
   return db.collection('evaluations')
-    .where('createdById', '==', currentUser.id)
-    .orderBy('timestamp', 'asc');
+    .where('createdById', '==', currentUser.id);
 }
 
 function startFsListener() {
   if (_fsUnsubscribe) _fsUnsubscribe();
+  if (!currentUser) return;
   var query = getEvalQuery();
+  if (!query) return;
+  // Clear evaluations immediately so stale data isn't shown
+  evaluations = [];
+  renderTable();
+  updateStats();
   _fsUnsubscribe = query.onSnapshot(function(snapshot) {
-    evaluations = [];
+    var results = [];
     snapshot.forEach(function(doc) {
       var data = doc.data();
       data._id = doc.id;
-      evaluations.push(data);
+      results.push(data);
     });
+    results.sort(function(a, b) {
+      return (a.timestamp || '').localeCompare(b.timestamp || '');
+    });
+    evaluations = results;
     _fsReady = true;
     saveToStorage();
     renderTable();
@@ -1399,7 +1408,11 @@ function startFsListener() {
       setTimeout(function(){toast.classList.remove('show');},2000);
     }
   }, function(err) {
-    console.warn('Firestore error, using local data:', err);
+    console.warn('Firestore query error, clearing data:', err);
+    evaluations = [];
+    saveToStorage();
+    renderTable();
+    updateStats();
   });
 }
 
@@ -1477,6 +1490,12 @@ function doLogin() {
   }
   errorEl.classList.remove('show');
   btn.classList.add('loading');
+
+  // Clear any stale cached data from previous sessions
+  evaluations = [];
+  try { localStorage.removeItem('evalData'); } catch(e) {}
+  renderTable();
+  updateStats();
 
   setTimeout(function() {
     btn.classList.remove('loading');
@@ -2835,7 +2854,7 @@ var _refreshTimer = setInterval(function() {
   });
 }, 30000);
 firebase.auth().onAuthStateChanged(function(user) {
-  if (user) {
+  if (user && currentUser) {
     startFsListener();
   }
 });
