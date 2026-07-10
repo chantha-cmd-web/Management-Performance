@@ -15,7 +15,7 @@ const USERS = [
   { id: '201674', name: 'LY BUNTHOEUN', password: 'admin123', role: 'admin' }
 ];
 
-const SUPER_ADMIN = { id: 'superadmin', name: 'Super Administrator', password: 'super@2024', role: 'superadmin' };
+const SUPER_ADMIN = { id: 'superadmin', name: 'Super Administrator', password: 'super@2026', role: 'superadmin' };
 
 function auditLog(userId, userName, userRole, action, detail) {
   const entry = {
